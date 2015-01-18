@@ -1,16 +1,12 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 
 ## Loading and preprocessing the data
 
 After unpacking the ```activity.zip``` import the data
 
-```{r}
+
+```r
 data <- read.csv('activity.csv',
                  head = TRUE,
                  na.strings='NA',
@@ -22,38 +18,55 @@ data <- read.csv('activity.csv',
 
 Also, we need to prepare data:
 1. Add leading zeros to the interval col
-```{r}
+
+```r
 data$interval <- lapply(data$interval, function(x) { sprintf("%04d", x)})
 ```
 2. Add ```datetime``` column with parced time:
-```{r}
+
+```r
 data$datetime <- as.POSIXct(paste(data$date, data$interval), format="%Y-%m-%d %H%M")
 ```
 
 ## What is mean total number of steps taken per day?
 
 The day totals can be obtained as
-```{r}
+
+```r
 totals <- aggregate(data$steps, by=list(data$date), sum)
 ```
 
 And histogram will look like:
-```{r histogram, fig.height = 8, fig.width = 25}
+
+```r
 barplot(totals$x, names.arg = totals$Group.1)
 ```
+
+![](PA1_template_files/figure-html/histogram-1.png) 
 The **mean** without N/A values is
-```{r, echo=TRUE}
+
+```r
 mean(totals$x, na.rm=TRUE)
 ```
+
+```
+## [1] 10766.19
+```
 The **median** without N/A values is
-```{r, echo=TRUE}
+
+```r
 median(totals$x, na.rm=TRUE)
+```
+
+```
+## [1] 10765
 ```
 
 ## What is the average daily activity pattern?
 
 Select interval values:
-```{r}
+
+```r
 interval <- unlist(unique(data$interval))
 intervals <- data.frame(interval)
 intervals$avg <- lapply(intervals$interval,
@@ -66,31 +79,47 @@ intervals$avg <- unlist(intervals$avg)
 ```
 
 Draw the plot with avarage value across all days (as abline):
-```{r avg_daily, fig.height = 8, fig.width = 25}
+
+```r
 plot(intervals$avg, type='l', xaxt="n")
 axis(1, labels=intervals$interval, at=c(1:length(intervals$interval)))
 abline(h=mean(intervals$avg))
 ```
 
+![](PA1_template_files/figure-html/avg_daily-1.png) 
+
 The maximum avg number of steps can be detected
-```{r}
+
+```r
 with(intervals, interval[avg== max(avg)])
+```
+
+```
+## [1] 0835
+## 288 Levels: 0000 0005 0010 0015 0020 0025 0030 0035 0040 0045 0050 ... 2355
 ```
 which is the interval in a day with maximum average
 
 ## Imputing missing values
 
 The total count of missing (NA) values is
-```{r}
+
+```r
 length(data$steps[is.na(data$steps)])
 ```
 
+```
+## [1] 2304
+```
+
 We will clone original data
-```{r}
+
+```r
 mdata <- data.frame(data)
 ```
 And replace NA values with avarage in the time interval
-```{r}
+
+```r
 mdata$steps <- round(unlist(apply(
   mdata,
   1,
@@ -101,26 +130,41 @@ mdata$steps <- round(unlist(apply(
 ```
 
 And finally there is the totals chart with restored NAs:
-```{r}
+
+```r
 mtotals <- aggregate(mdata$steps, by=list(mdata$date), sum)
 ```
-```{r histogram_with_na, fig.height = 8, fig.width = 25}
+
+```r
 barplot(mtotals$x, names.arg = mtotals$Group.1)
 ```
+
+![](PA1_template_files/figure-html/histogram_with_na-1.png) 
 The **mean** is
-```{r, echo=TRUE}
+
+```r
 mean(mtotals$x)
 ```
+
+```
+## [1] 10765.64
+```
 The **median** is
-```{r, echo=TRUE}
+
+```r
 median(mtotals$x)
+```
+
+```
+## [1] 10762
 ```
 *Median and mean values are a bit lower, but overall impact on averages and estimates is not significant.*
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 Define day names and factor:
-```{r}
+
+```r
 mdata$dayname <-weekdays(mdata$datetime)
 mdata$daytype <-factor(
   apply(
@@ -134,8 +178,13 @@ mdata$daytype <-factor(
 levels(mdata$daytype)
 ```
 
+```
+## [1] "weekday" "weekend"
+```
+
 Collect avg daya for weekdays and weekends:
-```{r}
+
+```r
 intervals$avg_we <- unlist(lapply(intervals$interval,
                         function(x) {
                             mean(mdata[mdata$interval == x & mdata$daytype == 'weekend',]$steps)
@@ -149,10 +198,13 @@ intervals$avg_wd <- unlist(lapply(intervals$interval,
 ```
 
 Comparison plot will be:
-```{r, comparison, fig.height=16, fig.width=25}
+
+```r
 par(mfrow=c(2,1), mar=c(2,4,0,0))
 plot(intervals$avg_wd, type='l', xaxt="n", ylab="Week Day averages", xlab='')
 plot(intervals$avg_we, type='l', xaxt="n", ylab="Week End averages", xlab='')
 
 axis(1, labels=intervals$interval, at=c(1:length(intervals$interval)))
 ```
+
+![](PA1_template_files/figure-html/comparison-1.png) 
